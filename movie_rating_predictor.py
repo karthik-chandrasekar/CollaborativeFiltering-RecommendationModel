@@ -11,21 +11,34 @@ class movie_predictor:
         user_based_pred = 0
         item_based_pred = 0
 
-        self.load_matrix()
-        self.get_input_values()
+        self.load_matrix(user=1)
+        self.get_input_values_user_based()
         user_based_pred = self.user_based()
-        print user_based_pred 
+        print user_based_pred
 
-    def load_matrix(self):
+        self.load_matrix(item=1)
+        self.get_input_values_item_based()
+        item_based_pred = self.user_based()
+        print item_based_pred
+
+    def load_matrix(self, user=0, item=0):
         self.initialize_matrix()
         self.open_file()
-        self.read_file()
+        if user ==1:
+            self.read_file_user_based()
+        elif item ==1:
+            self.read_file_item_based()
         self.close_file()
 
-    def get_input_values(self):
+    def get_input_values_user_based(self):
         self.n_size = int(sys.argv[1])
         self.user_id = int(sys.argv[2])
         self.item_id = int(sys.argv[3])
+
+    def get_input_values_item_based(self):
+        self.n_size = int(sys.argv[1])
+        self.user_id = int(sys.argv[3])
+        self.item_id = int(sys.argv[2])
 
     def user_based(self):
 
@@ -48,14 +61,20 @@ class movie_predictor:
 
     def initialize_matrix(self):
         self.user_item_matrix = numpy.empty((2000, 2000))
+        self.item_user_matrix = numpy.empty((2000, 2000))
 
     def open_file(self):
         self.fd_udata = codecs.open(self.input_file, "r", "utf-8")
         
-    def read_file(self):
+    def read_file_user_based(self):
         for line in self.fd_udata.readlines():
             user_id, item_id, rating = line.split("\t")[:3]      
             self.user_item_matrix[int(user_id)][int(item_id)] = int(rating)
+
+    def read_file_item_based(self):
+        for line in self.fd_udata.readlines():
+            user_id, item_id, rating = line.split("\t")[:3]
+            self.user_item_matrix[int(item_id)][int(user_id)] = int(rating)
 
     def close_file(self):
         self.fd_udata.close()
@@ -120,7 +139,6 @@ class movie_predictor:
                 continue
             tot_val += guser_rate_list[a] * nuser_rate_list[a]
         return tot_val
-
 
 if __name__ == "__main__":
     mp_obj = movie_predictor()
