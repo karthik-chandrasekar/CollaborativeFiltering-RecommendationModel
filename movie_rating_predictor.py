@@ -48,12 +48,15 @@ class movie_predictor:
 
         self.n_to_avg_rat_dict = self.find_user_rating_avg()
 
-        user_avg = sum(self.user_rat_list)/float(len(self.user_rat_list))
+        user_rat_list_ones_count = self.find_ones_count(self.user_rat_list) 
+        user_avg = sum(self.user_rat_list)/float(user_rat_list_ones_count)
         deno = sum(self.n_to_sim_dict.values())
 
         for user, sim in self.n_to_sim_dict.iteritems():
             rat_avg = self.n_to_avg_rat_dict[user]
             rate = self.user_item_matrix[user][self.item_id]
+            if rate == 0:
+                continue
             num += sim * (rate-rat_avg)
                       
         return user_avg + (num/float(deno))
@@ -61,7 +64,6 @@ class movie_predictor:
 
     def initialize_matrix(self):
         self.user_item_matrix = numpy.empty((2000, 2000))
-        self.item_user_matrix = numpy.empty((2000, 2000))
 
     def open_file(self):
         self.fd_udata = codecs.open(self.input_file, "r", "utf-8")
@@ -106,10 +108,18 @@ class movie_predictor:
         n_to_avg_rat_dict = {}
         for user in self.n_to_sim_dict.keys():
             rat_list = self.user_item_matrix[user]
-            avg_rat = sum(rat_list)/float(len(rat_list))
+            rat_list_ones_count = self.find_ones_count(rat_list)
+            avg_rat = sum(rat_list)/float(rat_list_ones_count)
             n_to_avg_rat_dict[user] = avg_rat
 
         return n_to_avg_rat_dict
+
+    def find_ones_count(self, rat_list):
+        list_count = 0
+        for rat in rat_list:
+            if rat > 0:
+                list_count +=1
+        return list_count
 
 
     def cosine_similarity(self, guser_rate_list, nuser_rate_list):
