@@ -8,15 +8,18 @@ class movie_predictor:
         self.file_name = 'u.data'
         self.input_file = os.path.join(self.input_dir, self.file_name)
 
-        self.rank = 2
+        self.selected_items_list = [64, 127, 187, 56, 177, 178, 318, 357, 182, 69] #Movielens ids for the given imdb movies
 
         #Making it a square matrix for computational easiness
         self.m_dim = 2000  
         self.n_dim = 2000
+        self.rank = 2
 
     def run_main(self):
         #Core function which calls several functions to find rating values with and without SVD
-    
+       
+        self.mode = int(sys.argv[4])
+
         #USER BASED - Ques 1 - Without SVD
         self.find_rating_without_svd(user=1)
 
@@ -27,6 +30,9 @@ class movie_predictor:
 
         #ITEM BASED - Ques 1 - Without SVD
         self.find_rating_without_svd(item=1)
+
+        if self.mode == 1:
+            return
 
         #USER BASED - Ques 2 - With SVD
         self.find_rating_with_svd(self.user_item_matrix_orig, self.user_id_orig, self.item_id_orig)
@@ -77,10 +83,13 @@ class movie_predictor:
 
         n_to_avg_rat_dict = self.find_user_rating_avg(n_to_sim_dict, user_item_matrix)
 
-        user_rat_list_ones_count = self.positive_rate_count(user_rat_list) 
-        user_avg = sum(user_rat_list)/float(user_rat_list_ones_count)
+        user_rat_list_ones_count = self.positive_rate_count(user_rat_list)
+        if user_rat_list_ones_count !=0: 
+            user_avg = sum(user_rat_list)/float(user_rat_list_ones_count)
+        else:
+            user_avg = 0
+        
         deno = sum(n_to_sim_dict.values())
-
 
         for user, sim in n_to_sim_dict.iteritems():
             rat_avg = n_to_avg_rat_dict[user]
@@ -88,25 +97,44 @@ class movie_predictor:
             if rate == 0:
                 continue
             num += sim * (rate-rat_avg)
-                      
+                    
+        if deno == 0:
+            return user_avg  
         return user_avg + (num/float(deno))
 
 
     def initialize_matrix(self):
-        self.user_item_matrix = numpy.empty((self.m_dim, self.n_dim))
+        self.user_item_matrix = numpy.zeros((self.m_dim, self.n_dim))
 
     def open_file(self):
         self.fd_udata = codecs.open(self.input_file, "r", "utf-8")
         
     def read_file_user_based(self):
-        for line in self.fd_udata.readlines():
-            user_id, item_id, rating = line.split("\t")[:3]
-            self.user_item_matrix[int(user_id)][int(item_id)] = int(rating)
+        if self.mode == 1:
+            for line in self.fd_udata.readlines():
+                user_id, item_id, rating = line.split("\t")[:3]
+                self.user_item_matrix[int(user_id)][int(item_id)] = int(rating)
+
+        elif self.mode == 2:
+            for line in self.fd_udata.readlines():
+                user_id, item_id, rating = line.split("\t")[:3]
+                if item_id in self.selected_items_list:
+                    self.user_item_matrix[int(user_id)][int(item_id)] = int(rating)
+                    
 
     def read_file_item_based(self):
-        for line in self.fd_udata.readlines():
-            user_id, item_id, rating = line.split("\t")[:3]
-            self.user_item_matrix[int(item_id)][int(user_id)] = int(rating)
+    
+        if self.mode == 1:
+            for line in self.fd_udata.readlines():
+                user_id, item_id, rating = line.split("\t")[:3]
+                self.user_item_matrix[int(item_id)][int(user_id)] = int(rating)
+
+        elif self.mode ==2:
+            for line in self.fd_udata.readlines():
+                user_id, item_id, rating = line.split("\t")[:3]
+                if item_id in self.selected_items_list:
+                    self.user_item_matrix[int(item_id)][int(user_id)] = int(rating)
+            
 
     def close_file(self):
         self.fd_udata.close()
@@ -141,7 +169,10 @@ class movie_predictor:
         for user in n_to_sim_dict.keys():
             rat_list = user_item_matrix[user]
             rat_list_ones_count = self.positive_rate_count(rat_list)
-            avg_rat = sum(rat_list)/float(rat_list_ones_count)
+            if rat_list_ones_count != 0:
+                avg_rat = sum(rat_list)/float(rat_list_ones_count)
+            else:
+                avg_rat = 0
             n_to_avg_rat_dict[user] = avg_rat
 
         return n_to_avg_rat_dict
