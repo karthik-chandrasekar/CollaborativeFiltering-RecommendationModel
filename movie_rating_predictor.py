@@ -8,7 +8,7 @@ class movie_predictor:
         self.file_name = 'u.data'
         self.input_file = os.path.join(self.input_dir, self.file_name)
 
-        self.selected_items_list = [64, 127, 187, 56, 177, 178, 318, 357, 182, 69] #Movielens ids for the given imdb movies
+        self.selected_items_list = ['64', '127', '187', '56', '177', '178', '318', '357', '182', '69'] #Movielens ids for the given imdb movies
 
         #Making it a square matrix for computational easiness
         self.m_dim = 2000  
@@ -30,9 +30,6 @@ class movie_predictor:
 
         #ITEM BASED - Ques 1 - Without SVD
         self.find_rating_without_svd(item=1)
-
-        if self.mode == 1:
-            return
 
         #USER BASED - Ques 2 - With SVD
         self.find_rating_with_svd(self.user_item_matrix_orig, self.user_id_orig, self.item_id_orig)
