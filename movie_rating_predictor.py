@@ -77,9 +77,10 @@ class movie_predictor:
 
         n_to_avg_rat_dict = self.find_user_rating_avg(n_to_sim_dict, user_item_matrix)
 
-        user_rat_list_ones_count = self.find_ones_count(user_rat_list) 
+        user_rat_list_ones_count = self.positive_rate_count(user_rat_list) 
         user_avg = sum(user_rat_list)/float(user_rat_list_ones_count)
         deno = sum(n_to_sim_dict.values())
+
 
         for user, sim in n_to_sim_dict.iteritems():
             rat_avg = n_to_avg_rat_dict[user]
@@ -100,13 +101,11 @@ class movie_predictor:
     def read_file_user_based(self):
         for line in self.fd_udata.readlines():
             user_id, item_id, rating = line.split("\t")[:3]
-            print "%s %s" % (user_id, item_id)      
             self.user_item_matrix[int(user_id)][int(item_id)] = int(rating)
 
     def read_file_item_based(self):
         for line in self.fd_udata.readlines():
             user_id, item_id, rating = line.split("\t")[:3]
-            print "%s %s" % (user_id, item_id)      
             self.user_item_matrix[int(item_id)][int(user_id)] = int(rating)
 
     def close_file(self):
@@ -141,13 +140,13 @@ class movie_predictor:
         n_to_avg_rat_dict = {}
         for user in n_to_sim_dict.keys():
             rat_list = user_item_matrix[user]
-            rat_list_ones_count = self.find_ones_count(rat_list)
+            rat_list_ones_count = self.positive_rate_count(rat_list)
             avg_rat = sum(rat_list)/float(rat_list_ones_count)
             n_to_avg_rat_dict[user] = avg_rat
 
         return n_to_avg_rat_dict
 
-    def find_ones_count(self, rat_list):
+    def positive_rate_count(self, rat_list):
 
         #Finds number of one's in the given list
         list_count = 0
@@ -194,9 +193,10 @@ class movie_predictor:
 
         user_item_matrix[user_id][item_id] = -1
         U, S, V = self.rank_two_approx(user_item_matrix) 
-        user_item_matrix = numpy.dot(U, numpy.dot(S,V))
+        user_item_matrix_rank = numpy.dot(U, numpy.dot(S,V))
         user_rat_list = user_item_matrix[user_id]
-        n_to_sim_dict = self.find_n_similar_neighbours(user_item_matrix, user_rat_list)
+        n_to_sim_dict = self.find_n_similar_neighbours(user_item_matrix_rank, user_rat_list)
+        user_rat_list = user_item_matrix[user_id]
         print "Most similar to %s is %s" % (user_id, n_to_sim_dict.keys()[0])
 
         #Ques two part b second:
