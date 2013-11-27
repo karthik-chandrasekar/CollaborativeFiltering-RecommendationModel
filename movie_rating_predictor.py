@@ -58,7 +58,7 @@ class movie_predictor:
 
     def get_input_values_user_based(self):
         self.n_size = int(sys.argv[1])
-        self.user_id = int(sys.argv[2])
+        self.user_id = int(sys.argv[2]) 
         self.item_id = int(sys.argv[3])
         self.mode = int(sys.argv[4])
 
@@ -74,7 +74,7 @@ class movie_predictor:
         user_rat_list = user_item_matrix[user_id]
 
         if not n_to_sim_dict:
-            n_to_sim_dict = self.find_n_similar_neighbours(user_item_matrix, user_rat_list)
+            n_to_sim_dict = self.find_n_similar_neighbours(user_item_matrix, user_rat_list, user_id)
         else:
             n_to_sim_dict = n_to_sim_dict
 
@@ -136,7 +136,7 @@ class movie_predictor:
     def close_file(self):
         self.fd_udata.close()
 
-    def find_n_similar_neighbours(self, user_item_matrix, user_rat_list):
+    def find_n_similar_neighbours(self, user_item_matrix, user_rat_list, user_id):
 
         #Finds top n similar neighbours
         row_count = 0
@@ -144,12 +144,13 @@ class movie_predictor:
 
 
         for row in user_item_matrix:
-            row_count += 1 
-            if row_count == self.user_id:
+            if row_count == user_id:
+                row_count += 1 
                 continue
+            row_count += 1 
             sim = self.cosine_similarity(user_rat_list, row)
             user_to_simval[row_count] = sim
-        
+
         n_to_sim_dict = OrderedDict()
         sorted_dict = sorted(user_to_simval.iteritems(), key=operator.itemgetter(1), reverse=True)           
         top_n_neighbour_tuple = sorted_dict[:self.n_size]
@@ -223,7 +224,7 @@ class movie_predictor:
         U, S, V = self.rank_two_approx(user_item_matrix) 
         user_item_matrix_rank = numpy.dot(U, numpy.dot(S,V))
         user_rat_list = user_item_matrix[user_id]
-        n_to_sim_dict = self.find_n_similar_neighbours(user_item_matrix_rank, user_rat_list)
+        n_to_sim_dict = self.find_n_similar_neighbours(user_item_matrix_rank, user_rat_list, user_id)
         user_rat_list = user_item_matrix[user_id]
         print "Most similar to %s is %s" % (user_id, n_to_sim_dict.keys()[0])
 
