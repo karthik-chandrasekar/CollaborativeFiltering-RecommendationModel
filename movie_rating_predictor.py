@@ -13,11 +13,13 @@ class movie_predictor:
 
         self.load_matrix(user=1)
         self.get_input_values_user_based()
+        self.tweak_matrix()
         user_based_pred = self.user_based()
         print user_based_pred
 
         self.load_matrix(item=1)
         self.get_input_values_item_based()
+        self.tweak_matrix()
         item_based_pred = self.user_based()
         print item_based_pred
 
@@ -30,15 +32,22 @@ class movie_predictor:
             self.read_file_item_based()
         self.close_file()
 
+    def tweak_matrix(self):
+        if self.mode == 1:
+            return
+        self.user_item_matrix[self.user_id][self.item_id] = -1
+
     def get_input_values_user_based(self):
         self.n_size = int(sys.argv[1])
         self.user_id = int(sys.argv[2])
         self.item_id = int(sys.argv[3])
+        self.mode = int(sys.argv[4])
 
     def get_input_values_item_based(self):
         self.n_size = int(sys.argv[1])
         self.user_id = int(sys.argv[3])
         self.item_id = int(sys.argv[2])
+        self.mode = int(sys.argv[4])
 
     def user_based(self):
 
