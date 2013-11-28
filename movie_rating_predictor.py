@@ -5,19 +5,18 @@ import matplotlib.pyplot as plt
 class movie_predictor:
 
     def __init__(self):
-        self.input_dir = '/Users/karthikchandrasekar/Desktop/Studies/Social_Media_Mining/SMM_H4_DEV/INPUT/ml-100k/'
+        self.input_dir = os.getcwd()
         self.file_name = 'u.data'
         self.input_file = os.path.join(self.input_dir, self.file_name)
 
-        self.selected_items_list = ['63', '126', '186', '55', '176', '177', '317', '356', '181', '68'] #Movielens ids for the given imdb movies
+        #Movielens ids for the given imdb movies [Each value is subtracted by 1 for interal calculation]
+        self.selected_items_list = ['63', '126', '186', '55', '176', '177', '317', '356', '181', '68'] 
 
         self.selected_items_col_map = {'63':'0', '126':'1', '186':'2', '55':'3', '176':'4', '177':'5', '317':'6', '356':'7', '181':'8', '68':'9'}
         self.mode = int(sys.argv[4])
 
         self.col_to_selected_items_map = {'0':'63', '1':'126', '2':'186', '3':'55', '4':'176', '5':'177', '6':'317', '7':'356', '8':'181', '9':'68'}
 
-        #Making it a square matrix for computational easiness
-        
         if self.mode == 1:    
             self.m_dim = 943  
             self.n_dim = 1682
@@ -39,7 +38,6 @@ class movie_predictor:
         self.user_id_orig = self.user_id
         self.item_id_orig = self.item_id
 
-
         #ITEM BASED - Ques 1 - Without SVD
         self.find_rating_without_svd(item=1)
 
@@ -57,11 +55,11 @@ class movie_predictor:
         if user ==1:
             self.load_matrix(user=1)
             self.get_input_values_user_based()
-            print self.predict_rating(self.user_item_matrix, self.user_id, self.item_id)
+            print "User based predicted rating - %s" % self.predict_rating(self.user_item_matrix, self.user_id, self.item_id)
         if item ==1:
             self.user_item_matrix_trans = self.user_item_matrix.transpose()
             self.get_input_values_item_based()
-            print self.predict_rating(self.user_item_matrix_trans, self.user_id, self.item_id)
+            print "Item based predicted rating - %s"  % self.predict_rating(self.user_item_matrix_trans, self.user_id, self.item_id)
             
 
     def load_matrix(self, user=0, item=0):
@@ -69,17 +67,17 @@ class movie_predictor:
         self.open_file()
         if user ==1:
             self.read_file_user_based()
-        elif item ==1:
-            self.read_file_item_based()
         self.close_file()
 
     def get_input_values_user_based(self):
         self.n_size = int(sys.argv[1])
         self.user_id = int(sys.argv[2]) - 1
         self.item_id = int(sys.argv[3]) - 1
-        if str(self.item_id) not in self.selected_items_list:
-            print "Please enter any one of these movie ids  %s " % ([int(x)+1 for x in self.selected_items_list])
-            exit(0)
+
+        if self.mode == 2:
+            if str(self.item_id) not in self.selected_items_list:
+                print "Please enter any one of these movie ids  %s " % ([int(x)+1 for x in self.selected_items_list])
+                exit(0)
         self.item_id = int(self.selected_items_col_map.get(str(self.item_id), -1)) 
         self.mode = int(sys.argv[4])
 
@@ -91,6 +89,8 @@ class movie_predictor:
         self.mode = int(sys.argv[4])
 
     def predict_rating(self, user_item_matrix, user_id, item_id, n_to_sim_dict={}):
+
+        #Module which predicts the rating value
 
         num = user_avg = deno = 0
         user_rat_list = user_item_matrix[user_id]
@@ -113,7 +113,7 @@ class movie_predictor:
         for user, sim in n_to_sim_dict.iteritems():
             rat_avg = n_to_avg_rat_dict[user]
             rate = user_item_matrix[user][item_id]
-            if rate == 0:
+            if rate <= 0:
                 continue
             num += sim * (rate-rat_avg)
                     
@@ -123,7 +123,6 @@ class movie_predictor:
 
 
     def initialize_matrix(self):
-        
         self.user_item_matrix = numpy.zeros((self.m_dim, self.n_dim))
 
 
@@ -146,21 +145,6 @@ class movie_predictor:
                 if str(item_id) in self.selected_items_list:
                     item_id = int(self.selected_items_col_map.get(str(item_id)))
                     self.user_item_matrix[user_id][item_id] = int(rating)
-                    
-
-    def read_file_item_based(self):
-    
-        if self.mode == 1:
-            for line in self.fd_udata.readlines():
-                user_id, item_id, rating = line.split("\t")[:3]
-                self.user_item_matrix[int(item_id)][int(user_id)] = int(rating)
-
-        elif self.mode ==2:
-            for line in self.fd_udata.readlines():
-                user_id, item_id, rating = line.split("\t")[:3]
-                if item_id in self.selected_items_list:
-                    self.user_item_matrix[int(item_id)][int(user_id)] = int(rating)
-            
 
     def close_file(self):
         self.fd_udata.close()
@@ -260,10 +244,11 @@ class movie_predictor:
 
         if user:
             print "Most similar to user %s is user %s" % (user_id+1, n_to_sim_dict.keys()[0]+1)
+            print "User based prediction with svd - %s" % self.predict_rating(user_item_matrix, user_id, item_id, n_to_sim_dict=n_to_sim_dict)
         if item:
             print "Most similar to item %s is item %s" % (int(self.col_to_selected_items_map.get(str(user_id))) +1, int(self.col_to_selected_items_map.get(str(n_to_sim_dict.keys()[0])))+1)
+            print "Item  based prediction with svd - %s" % self.predict_rating(user_item_matrix, user_id, item_id, n_to_sim_dict=n_to_sim_dict)
 
-        print self.predict_rating(user_item_matrix, user_id, item_id, n_to_sim_dict=n_to_sim_dict)
 
 
     def plot_graph_svd(self, U, V):
@@ -273,6 +258,9 @@ class movie_predictor:
 
           
     def plot_graph_user(self, U, fname):
+    
+        #Module to plot the graph of user matrix
+
         x_points_list = []
         y_points_list = []
         row_count = 0
@@ -290,6 +278,9 @@ class movie_predictor:
         plt.close()
 
     def plot_graph_item(self, V, fname):
+
+        #Module to plot the graph of item matrix
+
         x_points_list = []
         y_points_list = []
         row_count =0
