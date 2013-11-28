@@ -1,0 +1,36 @@
+SCRIPT NAME  : movie_rating_predictor.py
+
+PARAMETERS  :  Neighborhood size
+               User id
+               Item id
+               1 or 2  [To run the script for problem 1 or problem 2]
+
+
+INPUT DATA :  u.data is assumed to be present in the current working directory
+
+LANGUAGE : python
+
+REQUIRED LIBRARIES - numpy, matplotlib.
+
+REQUIRED DATASET - http://grouplens.org/datasets/movielens/
+
+
+SAMPLE RUN FOR PROBLEM 1:
+
+python movie_rating_predictor.py 5 269 127 1
+
+User based predicted rating - 3.0092879257
+Item based predicted rating - 2.23113182
+
+
+SAMPLE RUN FOR PROBLEM 2:
+
+python movie_rating_predictor.py 5 269 127 2
+
+User based predicted rating - 3.77892719124
+Item based predicted rating - 4.48832792053
+Most similar to user 269 is user 119
+User based prediction with svd - 3.34642858773
+Most similar to item 127 is item 187
+Item  based prediction with svd - 4.65782008461
+
