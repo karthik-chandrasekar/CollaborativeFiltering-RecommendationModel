@@ -9,18 +9,27 @@ class movie_predictor:
         self.file_name = 'u.data'
         self.input_file = os.path.join(self.input_dir, self.file_name)
 
-        self.selected_items_list = ['64', '127', '187', '56', '177', '178', '318', '357', '182', '69'] #Movielens ids for the given imdb movies
+        self.selected_items_list = ['63', '126', '186', '55', '176', '177', '317', '356', '181', '68'] #Movielens ids for the given imdb movies
+
+        self.selected_items_col_map = {'63':'0', '126':'1', '186':'2', '55':'3', '176':'4', '177':'5', '317':'6', '356':'7', '181':'8', '68':'9'}
+        self.mode = int(sys.argv[4])
+
+        self.col_to_selected_items_map = {'0':'63', '1':'126', '2':'186', '3':'55', '4':'176', '5':'177', '6':'317', '7':'356', '8':'181', '9':'68'}
 
         #Making it a square matrix for computational easiness
-        self.m_dim = 2000  
-        self.n_dim = 2000
+        
+        if self.mode == 1:    
+            self.m_dim = 943  
+            self.n_dim = 1682
+        if self.mode == 2:
+            self.m_dim = 943 
+            self.n_dim = 10
+            
         self.rank = 2
         self.graph_drawn = 0
 
     def run_main(self):
         #Core function which calls several functions to find rating values with and without SVD
-       
-        self.mode = int(sys.argv[4])
 
         #USER BASED - Ques 1 - Without SVD
         self.find_rating_without_svd(user=1)
@@ -30,24 +39,30 @@ class movie_predictor:
         self.user_id_orig = self.user_id
         self.item_id_orig = self.item_id
 
+
         #ITEM BASED - Ques 1 - Without SVD
         self.find_rating_without_svd(item=1)
 
+        if self.mode == 1:
+            return
+
         #USER BASED - Ques 2 - With SVD
-        self.find_rating_with_svd(self.user_item_matrix_orig, self.user_id_orig, self.item_id_orig)
+        self.find_rating_with_svd(self.user_item_matrix_orig, self.user_id_orig, self.item_id_orig, user=1)
 
         #ITEM BASED - Ques 2 - With SVD
-        self.find_rating_with_svd(self.user_item_matrix, self.user_id, self.item_id)
+        self.find_rating_with_svd(self.user_item_matrix_trans, self.user_id, self.item_id, item=1)
+
             
     def find_rating_without_svd(self, user=0, item=0):
         if user ==1:
             self.load_matrix(user=1)
             self.get_input_values_user_based()
+            print self.predict_rating(self.user_item_matrix, self.user_id, self.item_id)
         if item ==1:
-            self.load_matrix(item=1)
+            self.user_item_matrix_trans = self.user_item_matrix.transpose()
             self.get_input_values_item_based()
-        print self.predict_rating(self.user_item_matrix, self.user_id, self.item_id)
-
+            print self.predict_rating(self.user_item_matrix_trans, self.user_id, self.item_id)
+            
 
     def load_matrix(self, user=0, item=0):
         self.initialize_matrix()
@@ -60,14 +75,19 @@ class movie_predictor:
 
     def get_input_values_user_based(self):
         self.n_size = int(sys.argv[1])
-        self.user_id = int(sys.argv[2]) 
-        self.item_id = int(sys.argv[3])
+        self.user_id = int(sys.argv[2]) - 1
+        self.item_id = int(sys.argv[3]) - 1
+        if str(self.item_id) not in self.selected_items_list:
+            print "Please enter any one of these movie ids  %s " % ([int(x)+1 for x in self.selected_items_list])
+            exit(0)
+        self.item_id = int(self.selected_items_col_map.get(str(self.item_id), -1)) 
         self.mode = int(sys.argv[4])
 
     def get_input_values_item_based(self):
         self.n_size = int(sys.argv[1])
-        self.user_id = int(sys.argv[3])
-        self.item_id = int(sys.argv[2])
+        self.user_id = int(sys.argv[3]) - 1
+        self.user_id = int(self.selected_items_col_map.get(str(self.user_id), 0)) 
+        self.item_id = int(sys.argv[2]) -1
         self.mode = int(sys.argv[4])
 
     def predict_rating(self, user_item_matrix, user_id, item_id, n_to_sim_dict={}):
@@ -103,7 +123,9 @@ class movie_predictor:
 
 
     def initialize_matrix(self):
+        
         self.user_item_matrix = numpy.zeros((self.m_dim, self.n_dim))
+
 
     def open_file(self):
         self.fd_udata = codecs.open(self.input_file, "r", "utf-8")
@@ -112,13 +134,18 @@ class movie_predictor:
         if self.mode == 1:
             for line in self.fd_udata.readlines():
                 user_id, item_id, rating = line.split("\t")[:3]
-                self.user_item_matrix[int(user_id)][int(item_id)] = int(rating)
+                user_id = int(user_id) - 1
+                item_id = int(item_id) - 1
+                self.user_item_matrix[user_id][item_id] = int(rating)
 
         elif self.mode == 2:
             for line in self.fd_udata.readlines():
                 user_id, item_id, rating = line.split("\t")[:3]
-                if item_id in self.selected_items_list:
-                    self.user_item_matrix[int(user_id)][int(item_id)] = int(rating)
+                user_id = int(user_id) - 1
+                item_id = int(item_id) - 1
+                if str(item_id) in self.selected_items_list:
+                    item_id = int(self.selected_items_col_map.get(str(item_id)))
+                    self.user_item_matrix[user_id][item_id] = int(rating)
                     
 
     def read_file_item_based(self):
@@ -144,14 +171,13 @@ class movie_predictor:
         row_count = 0
         user_to_simval = {}
 
-
         for row in user_item_matrix:
             if row_count == user_id:
                 row_count += 1 
                 continue
-            row_count += 1 
             sim = self.cosine_similarity(user_rat_list, row)
             user_to_simval[row_count] = sim
+            row_count += 1 
 
         n_to_sim_dict = OrderedDict()
         sorted_dict = sorted(user_to_simval.iteritems(), key=operator.itemgetter(1), reverse=True)           
@@ -218,21 +244,25 @@ class movie_predictor:
             tot_val += guser_rate_list[a] * nuser_rate_list[a]
         return tot_val
 
-    def find_rating_with_svd(self, user_item_matrix, user_id, item_id):
+    def find_rating_with_svd(self, user_item_matrix, user_id, item_id, user=0, item=0):
 
         #Perform rank approximization, find similartiy using this matrix and use it for predicting rate.
 
         user_item_matrix[user_id][item_id] = -1
         U, S, V = self.rank_two_approx(user_item_matrix)
+
         if not self.graph_drawn:
             self.plot_graph_svd(U, V) 
+
         user_item_matrix_rank = numpy.dot(U, numpy.dot(S,V))
         user_rat_list = user_item_matrix[user_id]
         n_to_sim_dict = self.find_n_similar_neighbours(user_item_matrix_rank, user_rat_list, user_id)
-        user_rat_list = user_item_matrix[user_id]
-        print "Most similar to %s is %s" % (user_id, n_to_sim_dict.keys()[0])
 
-        #Ques two part b second:
+        if user:
+            print "Most similar to user %s is user %s" % (user_id+1, n_to_sim_dict.keys()[0]+1)
+        if item:
+            print "Most similar to item %s is item %s" % (int(self.col_to_selected_items_map.get(str(user_id))) +1, int(self.col_to_selected_items_map.get(str(n_to_sim_dict.keys()[0])))+1)
+
         print self.predict_rating(user_item_matrix, user_id, item_id, n_to_sim_dict=n_to_sim_dict)
 
 
@@ -245,7 +275,7 @@ class movie_predictor:
     def plot_graph_user(self, U, fname):
         x_points_list = []
         y_points_list = []
-        row_count = 1
+        row_count = 0
 
         for row in U:
             x_point = row[0]
@@ -254,31 +284,32 @@ class movie_predictor:
                 row_count += 1
                 continue
             plt.plot(x_point, y_point, 'ro')
-            plt.text(x_point, y_point, str(row_count), fontsize=5)
+            plt.text(x_point, y_point, str(row_count+1), fontsize=5)
             row_count += 1
         plt.savefig(fname)
+        plt.close()
 
     def plot_graph_item(self, V, fname):
         x_points_list = []
         y_points_list = []
-        row_count = 1
+        row_count =0
 
         V_trans = V.transpose()
         for row in V_trans:
-            x_point = row[1]
-            y_point = row[0]
-            if (not x_point and not y_point) or str(row_count) not in self.selected_items_list:
+            x_point = row[0]
+            y_point = row[1]
+            if not x_point and not y_point:
                 row_count += 1
                 continue
             plt.plot(x_point, y_point, 'ro')
-            plt.text(x_point, y_point, str(row_count), fontsize=5)
+            plt.text(x_point, y_point, int(self.col_to_selected_items_map.get(str(row_count)))+1, fontsize=12)
             row_count += 1
         plt.savefig(fname)
+        plt.close()
 
     def rank_two_approx(self, user_item_matrix):
         
         #Performs rank approximation on the matrix
-        
         U, s_di, V = self.apply_svd(user_item_matrix)
         S = numpy.zeros((self.m_dim, self.n_dim))
         S[:self.n_dim, :self.n_dim] = numpy.diag(s_di)
