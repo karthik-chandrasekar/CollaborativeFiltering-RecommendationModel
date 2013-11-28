@@ -1,5 +1,6 @@
 import os, codecs, math, numpy, sys, operator
 from collections import OrderedDict
+import matplotlib.pyplot as plt
 
 class movie_predictor:
 
@@ -14,6 +15,7 @@ class movie_predictor:
         self.m_dim = 2000  
         self.n_dim = 2000
         self.rank = 2
+        self.graph_drawn = 0
 
     def run_main(self):
         #Core function which calls several functions to find rating values with and without SVD
@@ -221,7 +223,9 @@ class movie_predictor:
         #Perform rank approximization, find similartiy using this matrix and use it for predicting rate.
 
         user_item_matrix[user_id][item_id] = -1
-        U, S, V = self.rank_two_approx(user_item_matrix) 
+        U, S, V = self.rank_two_approx(user_item_matrix)
+        if not self.graph_drawn:
+            self.plot_graph_svd(U, V) 
         user_item_matrix_rank = numpy.dot(U, numpy.dot(S,V))
         user_rat_list = user_item_matrix[user_id]
         n_to_sim_dict = self.find_n_similar_neighbours(user_item_matrix_rank, user_rat_list, user_id)
@@ -230,6 +234,46 @@ class movie_predictor:
 
         #Ques two part b second:
         print self.predict_rating(user_item_matrix, user_id, item_id, n_to_sim_dict=n_to_sim_dict)
+
+
+    def plot_graph_svd(self, U, V):
+        self.graph_drawn = 1
+        self.plot_graph_user(U, 'user')
+        self.plot_graph_item(V, 'item')
+
+          
+    def plot_graph_user(self, U, fname):
+        x_points_list = []
+        y_points_list = []
+        row_count = 1
+
+        for row in U:
+            x_point = row[0]
+            y_point = row[1]
+            if not x_point and not y_point:
+                row_count += 1
+                continue
+            plt.plot(x_point, y_point, 'ro')
+            plt.text(x_point, y_point, str(row_count), fontsize=5)
+            row_count += 1
+        plt.savefig(fname)
+
+    def plot_graph_item(self, V, fname):
+        x_points_list = []
+        y_points_list = []
+        row_count = 1
+
+        V_trans = V.transpose()
+        for row in V_trans:
+            x_point = row[1]
+            y_point = row[0]
+            if (not x_point and not y_point) or str(row_count) not in self.selected_items_list:
+                row_count += 1
+                continue
+            plt.plot(x_point, y_point, 'ro')
+            plt.text(x_point, y_point, str(row_count), fontsize=5)
+            row_count += 1
+        plt.savefig(fname)
 
     def rank_two_approx(self, user_item_matrix):
         
